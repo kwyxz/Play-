@@ -720,6 +720,23 @@ void CGSHandler::WriteRegisterMassivelyImpl(const MASSIVEWRITE_INFO& massiveWrit
 	m_transferCount--;
 }
 
+std::pair<uint32, uint32> CGSHandler::GetTransferInvalidationRange(const BITBLTBUF& bltBuf, const TRXREG& trxReg, const TRXPOS& trxPos)
+{
+	uint32 transferAddress = bltBuf.GetDstPtr();
+
+	//Find the pages that are touched by transfer
+	auto transferPageSize = CGsPixelFormats::GetPsmPageSize(bltBuf.nDstPsm);
+
+	uint32 pageCountX = (bltBuf.GetDstWidth() + transferPageSize.first - 1) / transferPageSize.first;
+	uint32 pageCountY = (trxReg.nRRH + transferPageSize.second - 1) / transferPageSize.second;
+
+	uint32 pageCount = pageCountX * pageCountY;
+	uint32 transferSize = pageCount * CGsPixelFormats::PAGESIZE;
+	uint32 transferOffset = (trxPos.nDSAY / transferPageSize.second) * pageCountX * CGsPixelFormats::PAGESIZE;
+
+	return std::make_pair(transferAddress + transferOffset, transferSize);
+}
+
 void CGSHandler::BeginTransfer()
 {
 	uint32 trxDir = m_nReg[GS_REG_TRXDIR] & 0x03;
